@@ -19,7 +19,13 @@ const FeatureButton = ({
   className,
 }: FeatureButtonProps) => {
   return (
-    <Link to={to} className={cn("feature-button", className)}>
+    <Link 
+      to={to} 
+      className={cn(
+        "feature-button flex items-center gap-3 px-5 py-4 rounded-xl bg-secondary hover:bg-secondary/80 transition-all duration-200 text-left font-medium shadow-sm", 
+        className
+      )}
+    >
       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
         <Icon className="h-5 w-5 text-primary" />
       </div>
