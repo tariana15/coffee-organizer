@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { 
@@ -16,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "sonner";
+import { toast } from "sonner";
 
 // Types
 interface Product {
@@ -103,7 +102,6 @@ const Register = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isShiftOpen, setIsShiftOpen] = useState(false);
-  const { toast } = useToast();
 
   // Filter products based on search and category
   const filteredProducts = mockProducts.filter(product => 
@@ -119,7 +117,6 @@ const Register = () => {
       );
       
       if (existingItemIndex >= 0) {
-        // If product already in cart, increase quantity
         const updatedCart = [...prevCart];
         updatedCart[existingItemIndex] = {
           ...updatedCart[existingItemIndex],
@@ -127,7 +124,6 @@ const Register = () => {
         };
         return updatedCart;
       } else {
-        // Add new product to cart
         return [...prevCart, { product, quantity: 1 }];
       }
     });
@@ -143,10 +139,8 @@ const Register = () => {
       if (existingItemIndex >= 0) {
         const updatedCart = [...prevCart];
         if (removeAll || updatedCart[existingItemIndex].quantity === 1) {
-          // Remove product entirely
           return updatedCart.filter(item => item.product.id !== productId);
         } else {
-          // Decrease quantity
           updatedCart[existingItemIndex] = {
             ...updatedCart[existingItemIndex],
             quantity: updatedCart[existingItemIndex].quantity - 1
