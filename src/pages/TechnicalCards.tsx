@@ -141,7 +141,10 @@ const TechnicalCards = () => {
           
           if (row.length >= 4 && row[1]?.trim()) {
             const category = row[0]?.trim() || 'другое';
-            uniqueCategories.add(category);
+            
+            if (category) {
+              uniqueCategories.add(category);
+            }
             
             // Parse ingredients
             const ingredients = row[2]?.trim() 
@@ -153,17 +156,17 @@ const TechnicalCards = () => {
               ? row[3].split(';').map(s => s.trim()).filter(Boolean)
               : [];
             
-            // Safely handle image URL
+            // Safely handle image URL - make sure not to add invalid URLs
             let imageUrl = undefined;
             if (row[4]?.trim()) {
               try {
-                // Validate the URL or use undefined if invalid
                 const url = row[4].trim();
-                new URL(url); // This will throw an error if URL is invalid
-                imageUrl = url;
+                // Simple validation to prevent malformed URIs
+                if (url.startsWith('http://') || url.startsWith('https://')) {
+                  imageUrl = url;
+                }
               } catch (e) {
                 console.warn("Invalid image URL for recipe:", row[1]);
-                // Don't set imageUrl if invalid (it stays undefined)
               }
             }
             
