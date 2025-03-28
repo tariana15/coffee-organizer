@@ -23,9 +23,9 @@ interface RecipeIngredient {
 interface Recipe {
   id: string;
   name: string;
-  category: string; // Changed to string to accommodate "авторские", "классические", "чай"
-  ingredients: string[]; // Changed to string[] as ingredients format has changed
-  preparation: string[]; // Preparation steps
+  category: string;
+  ingredients: string[];
+  preparation: string[];
   image?: string;
 }
 
@@ -35,7 +35,6 @@ const mockRecipes: Recipe[] = [
     name: "Капучино",
     category: "классические",
     ingredients: ["Эспрессо", "Молоко"],
-    description: "Классический капучино с нежной молочной пеной.",
     preparation: [
       "Приготовить эспрессо (30 мл)",
       "Взбить молоко до образования микропены",
@@ -49,7 +48,6 @@ const mockRecipes: Recipe[] = [
     name: "Латте",
     category: "классические",
     ingredients: ["Эспрессо", "Молоко", "Сироп (опционально)"],
-    description: "Мягкий кофейный напиток с большим количеством молока.",
     preparation: [
       "Приготовить эспрессо (30 мл)",
       "Взбить молоко до образования микропены",
@@ -62,7 +60,6 @@ const mockRecipes: Recipe[] = [
     name: "Американо",
     category: "классические",
     ingredients: ["Эспрессо", "Горячая вода"],
-    description: "Лёгкий кофе, разбавленный горячей водой.",
     preparation: [
       "Приготовить эспрессо (30 мл)",
       "Добавить горячую воду (90-150 мл в зависимости от желаемой крепости)"
@@ -73,7 +70,6 @@ const mockRecipes: Recipe[] = [
     name: "Чай Эрл Грей",
     category: "чай",
     ingredients: ["Чай Эрл Грей", "Горячая вода"],
-    description: "Классический черный чай с бергамотом.",
     preparation: [
       "Нагреть воду до 90-95°C",
       "Заварить чай 3-5 минут"
@@ -84,7 +80,6 @@ const mockRecipes: Recipe[] = [
     name: "Раф кофе",
     category: "авторские",
     ingredients: ["Эспрессо", "Сливки", "Ванильный сахар"],
-    description: "Нежный кофейный напиток со сливками и ванилью.",
     preparation: [
       "Приготовить эспрессо (30 мл)",
       "Взбить сливки с ванильным сахаром",
@@ -164,7 +159,6 @@ const TechnicalCards = () => {
               name: row[1]?.trim() || '',
               ingredients: ingredients,
               preparation: preparation,
-              description: ingredients.join(', '), // Use ingredients as description
               image: row[4]?.trim() || undefined
             };
             
@@ -275,7 +269,7 @@ const TechnicalCards = () => {
                         <h3 className="font-medium">{recipe.name}</h3>
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2">
-                        {recipe.description}
+                        {recipe.ingredients.join(', ')}
                       </p>
                     </div>
                   </div>
@@ -307,7 +301,7 @@ const TechnicalCards = () => {
                 {getCategoryIcon(selectedRecipe.category)}
                 <h2 className="text-xl font-semibold">{selectedRecipe.name}</h2>
               </div>
-              <p className="text-muted-foreground mb-4">{selectedRecipe.description}</p>
+              <p className="text-muted-foreground mb-4">{selectedRecipe.ingredients.join(', ')}</p>
               
               <h3 className="font-medium mb-2">Ингредиенты:</h3>
               <div className="space-y-1 mb-4">
