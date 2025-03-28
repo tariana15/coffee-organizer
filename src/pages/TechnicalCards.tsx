@@ -153,13 +153,27 @@ const TechnicalCards = () => {
               ? row[3].split(';').map(s => s.trim()).filter(Boolean)
               : [];
             
+            // Safely handle image URL
+            let imageUrl = undefined;
+            if (row[4]?.trim()) {
+              try {
+                // Validate the URL or use undefined if invalid
+                const url = row[4].trim();
+                new URL(url); // This will throw an error if URL is invalid
+                imageUrl = url;
+              } catch (e) {
+                console.warn("Invalid image URL for recipe:", row[1]);
+                // Don't set imageUrl if invalid (it stays undefined)
+              }
+            }
+            
             const recipe: Recipe = {
               id: `r${i}`,
               category: category,
               name: row[1]?.trim() || '',
               ingredients: ingredients,
               preparation: preparation,
-              image: row[4]?.trim() || undefined
+              image: imageUrl
             };
             
             fetchedRecipes.push(recipe);
