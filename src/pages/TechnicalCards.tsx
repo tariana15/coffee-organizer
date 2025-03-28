@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/AppLayout";
 import { 
@@ -127,24 +128,44 @@ const TechnicalCards = () => {
         setLoading(true);
         const spreadsheetId = "1nWyXFaS1G5LZ--C0nHxSy5lzU-9wa06DWoE7ucHRlj8";
         const sheetId = "0";
-        const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&gid=${sheetId}`;
+        const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${sheetId}`;
         
         const response = await fetch(url);
-        const text = await response.text();
         
-        const jsonData = JSON.parse(text.substring(47).slice(0, -2));
+        if (!response.ok) {
+          throw new Error(`Failed to fetch data: ${response.status}`);
+        }
         
-        if (jsonData && jsonData.table && jsonData.table.rows) {
-          const headers = jsonData.table.cols.map((col: any) => col.label);
+        const csvText = await response.text();
+        const lines = csvText.split('\n');
+        const headers = lines[0].split(',');
+        
+        const fetchedRecipes: Recipe[] = [];
+        
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
           
-          const fetchedRecipes: Recipe[] = [];
+          // Handle commas within quoted strings
+          let row: string[] = [];
+          let inQuotes = false;
+          let currentValue = '';
           
-          for (let i = 1; i < jsonData.table.rows.length; i++) {
-            const row = jsonData.table.rows[i];
-            if (!row.c[0]?.v) continue;
-            
-            const rawIngredients = row.c[3]?.v ? row.c[3].v.split(',') : [];
-            const formattedIngredients: RecipeIngredient[] = rawIngredients.map((item: string) => {
+          for (let char of lines[i]) {
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              row.push(currentValue);
+              currentValue = '';
+            } else {
+              currentValue += char;
+            }
+          }
+          row.push(currentValue); // Add the last value
+          
+          if (row[0]?.trim()) {
+            // Parse ingredients
+            const rawIngredients = row[3]?.trim() ? row[3].split(';') : [];
+            const ingredients: RecipeIngredient[] = rawIngredients.map(item => {
               const parts = item.trim().split(':');
               return {
                 name: parts[0]?.trim() || '',
@@ -152,23 +173,27 @@ const TechnicalCards = () => {
               };
             });
             
-            const preparation = row.c[4]?.v ? row.c[4].v.split('.').filter(Boolean).map((s: string) => s.trim()) : [];
+            // Parse preparation steps
+            const preparation = row[4]?.trim() 
+              ? row[4].split(';').filter(Boolean).map(s => s.trim()) 
+              : [];
             
             const recipe: Recipe = {
               id: `r${i}`,
-              name: row.c[0]?.v || '',
-              category: mapCategory(row.c[1]?.v),
-              description: row.c[2]?.v || '',
-              ingredients: formattedIngredients,
+              name: row[0]?.trim() || '',
+              category: mapCategory(row[1]?.trim()),
+              description: row[2]?.trim() || '',
+              ingredients,
               preparation,
-              image: row.c[5]?.v || undefined
+              image: row[5]?.trim() || undefined
             };
             
             fetchedRecipes.push(recipe);
           }
-          
-          setRecipes(fetchedRecipes);
         }
+        
+        console.log("Fetched recipes:", fetchedRecipes);
+        setRecipes(fetchedRecipes.length > 0 ? fetchedRecipes : mockRecipes);
       } catch (error) {
         console.error("Error fetching data from Google Sheets:", error);
         toast({
