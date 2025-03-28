@@ -5,7 +5,6 @@ import {
   Search, 
   Coffee,
   CupSoda,
-  Milk,
   Cherry,
   Croissant,
   Loader2
@@ -24,10 +23,9 @@ interface RecipeIngredient {
 interface Recipe {
   id: string;
   name: string;
-  category: "coffee" | "tea" | "dessert" | "other";
-  ingredients: RecipeIngredient[];
-  description: string;
-  preparation: string[];
+  category: string; // Changed to string to accommodate "авторские", "классические", "чай"
+  ingredients: string[]; // Changed to string[] as ingredients format has changed
+  preparation: string[]; // Preparation steps
   image?: string;
 }
 
@@ -35,11 +33,8 @@ const mockRecipes: Recipe[] = [
   {
     id: "r1",
     name: "Капучино",
-    category: "coffee",
-    ingredients: [
-      { name: "Эспрессо", amount: "30 мл" },
-      { name: "Молоко", amount: "150 мл" },
-    ],
+    category: "классические",
+    ingredients: ["Эспрессо", "Молоко"],
     description: "Классический капучино с нежной молочной пеной.",
     preparation: [
       "Приготовить эспрессо (30 мл)",
@@ -52,12 +47,8 @@ const mockRecipes: Recipe[] = [
   {
     id: "r2",
     name: "Латте",
-    category: "coffee",
-    ingredients: [
-      { name: "Эспрессо", amount: "30 мл" },
-      { name: "Молоко", amount: "200 мл" },
-      { name: "Сироп (опционально)", amount: "15 мл" },
-    ],
+    category: "классические",
+    ingredients: ["Эспрессо", "Молоко", "Сироп (опционально)"],
     description: "Мягкий кофейный напиток с большим количеством молока.",
     preparation: [
       "Приготовить эспрессо (30 мл)",
@@ -69,11 +60,8 @@ const mockRecipes: Recipe[] = [
   {
     id: "r3",
     name: "Американо",
-    category: "coffee",
-    ingredients: [
-      { name: "Эспрессо", amount: "30 мл" },
-      { name: "Горячая вода", amount: "90-150 мл" },
-    ],
+    category: "классические",
+    ingredients: ["Эспрессо", "Горячая вода"],
     description: "Лёгкий кофе, разбавленный горячей водой.",
     preparation: [
       "Приготовить эспрессо (30 мл)",
@@ -83,11 +71,8 @@ const mockRecipes: Recipe[] = [
   {
     id: "r4",
     name: "Чай Эрл Грей",
-    category: "tea",
-    ingredients: [
-      { name: "Чай Эрл Грей", amount: "1 пакетик/3 г" },
-      { name: "Горячая вода", amount: "200 мл" },
-    ],
+    category: "чай",
+    ingredients: ["Чай Эрл Грей", "Горячая вода"],
     description: "Классический черный чай с бергамотом.",
     preparation: [
       "Нагреть воду до 90-95°C",
@@ -96,20 +81,14 @@ const mockRecipes: Recipe[] = [
   },
   {
     id: "r5",
-    name: "Черничный маффин",
-    category: "dessert",
-    ingredients: [
-      { name: "Мука", amount: "50 г" },
-      { name: "Сахар", amount: "25 г" },
-      { name: "Масло", amount: "20 г" },
-      { name: "Яйцо", amount: "1/4 шт" },
-      { name: "Черника", amount: "15 г" },
-      { name: "Разрыхлитель", amount: "1/4 ч.л." },
-    ],
-    description: "Нежный маффин с черникой.",
+    name: "Раф кофе",
+    category: "авторские",
+    ingredients: ["Эспрессо", "Сливки", "Ванильный сахар"],
+    description: "Нежный кофейный напиток со сливками и ванилью.",
     preparation: [
-      "Размораживать при комнатной температуре 1 час",
-      "Разогреть в микроволновке 20-30 секунд перед подачей"
+      "Приготовить эспрессо (30 мл)",
+      "Взбить сливки с ванильным сахаром",
+      "Смешать с эспрессо"
     ],
   },
 ];
@@ -120,6 +99,7 @@ const TechnicalCards = () => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>(["all"]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -138,9 +118,11 @@ const TechnicalCards = () => {
         
         const csvText = await response.text();
         const lines = csvText.split('\n');
-        const headers = lines[0].split(',');
         
+        // Skip header row
         const fetchedRecipes: Recipe[] = [];
+        const uniqueCategories = new Set<string>();
+        uniqueCategories.add("all"); // Always add "all" category
         
         for (let i = 1; i < lines.length; i++) {
           if (!lines[i].trim()) continue;
@@ -162,30 +144,28 @@ const TechnicalCards = () => {
           }
           row.push(currentValue); // Add the last value
           
-          if (row[0]?.trim()) {
+          if (row.length >= 4 && row[1]?.trim()) {
+            const category = row[0]?.trim() || 'другое';
+            uniqueCategories.add(category);
+            
             // Parse ingredients
-            const rawIngredients = row[3]?.trim() ? row[3].split(';') : [];
-            const ingredients: RecipeIngredient[] = rawIngredients.map(item => {
-              const parts = item.trim().split(':');
-              return {
-                name: parts[0]?.trim() || '',
-                amount: parts[1]?.trim() || ''
-              };
-            });
+            const ingredients = row[2]?.trim() 
+              ? row[2].split(';').map(item => item.trim()).filter(Boolean)
+              : [];
             
             // Parse preparation steps
-            const preparation = row[4]?.trim() 
-              ? row[4].split(';').filter(Boolean).map(s => s.trim()) 
+            const preparation = row[3]?.trim() 
+              ? row[3].split(';').map(s => s.trim()).filter(Boolean)
               : [];
             
             const recipe: Recipe = {
               id: `r${i}`,
-              name: row[0]?.trim() || '',
-              category: mapCategory(row[1]?.trim()),
-              description: row[2]?.trim() || '',
-              ingredients,
-              preparation,
-              image: row[5]?.trim() || undefined
+              category: category,
+              name: row[1]?.trim() || '',
+              ingredients: ingredients,
+              preparation: preparation,
+              description: ingredients.join(', '), // Use ingredients as description
+              image: row[4]?.trim() || undefined
             };
             
             fetchedRecipes.push(recipe);
@@ -193,7 +173,13 @@ const TechnicalCards = () => {
         }
         
         console.log("Fetched recipes:", fetchedRecipes);
+        console.log("Unique categories:", [...uniqueCategories]);
+        
+        setCategories([...uniqueCategories]);
         setRecipes(fetchedRecipes.length > 0 ? fetchedRecipes : mockRecipes);
+        
+        // Set active tab to "all" by default
+        setActiveTab("all");
       } catch (error) {
         console.error("Error fetching data from Google Sheets:", error);
         toast({
@@ -202,6 +188,7 @@ const TechnicalCards = () => {
           variant: "destructive"
         });
         setRecipes(mockRecipes);
+        setCategories(["all", ...new Set(mockRecipes.map(r => r.category))]);
       } finally {
         setLoading(false);
       }
@@ -210,26 +197,16 @@ const TechnicalCards = () => {
     fetchGoogleSheetData();
   }, [toast]);
 
-  const mapCategory = (categoryValue: string): "coffee" | "tea" | "dessert" | "other" => {
-    const lowerCaseCategory = categoryValue?.toLowerCase() || '';
-    
-    if (lowerCaseCategory.includes('кофе')) return "coffee";
-    if (lowerCaseCategory.includes('чай')) return "tea";
-    if (lowerCaseCategory.includes('дессерт')) return "dessert";
-    
-    return "other";
-  };
-
   const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case "coffee":
-        return <Coffee className="h-5 w-5" />;
-      case "tea":
-        return <CupSoda className="h-5 w-5" />;
-      case "dessert":
-        return <Croissant className="h-5 w-5" />;
-      default:
-        return <Cherry className="h-5 w-5" />;
+    const lowerCategory = category.toLowerCase();
+    if (lowerCategory.includes('кофе') || lowerCategory.includes('классич') || lowerCategory.includes('автор')) {
+      return <Coffee className="h-5 w-5" />;
+    } else if (lowerCategory.includes('чай')) {
+      return <CupSoda className="h-5 w-5" />;
+    } else if (lowerCategory.includes('десс') || lowerCategory.includes('выпеч')) {
+      return <Croissant className="h-5 w-5" />;
+    } else {
+      return <Cherry className="h-5 w-5" />;
     }
   };
 
@@ -256,11 +233,12 @@ const TechnicalCards = () => {
         onValueChange={setActiveTab}
         className="mb-6"
       >
-        <TabsList className="grid grid-cols-4 mb-4">
-          <TabsTrigger value="all">Все</TabsTrigger>
-          <TabsTrigger value="coffee">Кофе</TabsTrigger>
-          <TabsTrigger value="tea">Чай</TabsTrigger>
-          <TabsTrigger value="dessert">Десерты</TabsTrigger>
+        <TabsList className="grid" style={{ gridTemplateColumns: `repeat(${Math.min(categories.length, 4)}, 1fr)` }}>
+          {categories.map(category => (
+            <TabsTrigger key={category} value={category}>
+              {category === "all" ? "Все" : category}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value={activeTab} className="space-y-4">
@@ -335,8 +313,7 @@ const TechnicalCards = () => {
               <div className="space-y-1 mb-4">
                 {selectedRecipe.ingredients.map((ingredient, index) => (
                   <div key={index} className="flex justify-between">
-                    <span>{ingredient.name}</span>
-                    <span className="text-muted-foreground">{ingredient.amount}</span>
+                    <span>{ingredient}</span>
                   </div>
                 ))}
               </div>
