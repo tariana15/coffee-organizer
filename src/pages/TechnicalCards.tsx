@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/AppLayout";
 import { 
@@ -42,9 +41,9 @@ const TechnicalCards = () => {
       try {
         setLoading(true);
         // Google Sheets ID from the URL
-        const spreadsheetId = "1-8LbmnmJggaeGv9AHL1vXZT_hvBVhV_kdFO_v4p0D0E";
+        const spreadsheetId = "1nWyXFaS1G5LZ--C0nHxSy5lzU-9wa06DWoE7ucHRlj8";
         // Sheet ID from the URL
-        const sheetId = "798915225";
+        const sheetId = "0";
         // Use Google Sheets API to fetch data in CSV format
         const response = await fetch(
           `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${sheetId}`
