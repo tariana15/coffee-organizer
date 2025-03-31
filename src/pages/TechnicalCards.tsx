@@ -23,10 +23,11 @@ interface RecipeIngredient {
 interface Recipe {
   id: string;
   name: string;
-  category: string; // Changed to string to accommodate "авторские", "классические", "чай"
-  ingredients: string[]; // Changed to string[] as ingredients format has changed
-  preparation: string[]; // Preparation steps
+  category: string;
+  ingredients: string[];
+  preparation: string[];
   image?: string;
+  description?: string;
 }
 
 const mockRecipes: Recipe[] = [
@@ -35,13 +36,13 @@ const mockRecipes: Recipe[] = [
     name: "Капучино",
     category: "классические",
     ingredients: ["Эспрессо", "Молоко"],
-    description: "Классический капучино с нежной молочной пеной.",
     preparation: [
       "Приготовить эспрессо (30 мл)",
       "Взбить молоко до образования микропены",
       "Влить молоко в эспрессо, создавая слоистую структуру",
       "При подаче можно украсить корицей или какао"
     ],
+    description: "Классический капучино с нежной молочной пеной.",
     image: "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
   },
   {
@@ -106,9 +107,12 @@ const TechnicalCards = () => {
     const fetchGoogleSheetData = async () => {
       try {
         setLoading(true);
+        // Use a safer method to fetch data from Google Sheets
         const spreadsheetId = "1nWyXFaS1G5LZ--C0nHxSy5lzU-9wa06DWoE7ucHRlj8";
         const sheetId = "0";
-        const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${sheetId}`;
+        
+        // Use encodeURIComponent for the URL parts that might contain special characters
+        const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(spreadsheetId)}/export?format=csv&gid=${encodeURIComponent(sheetId)}`;
         
         const response = await fetch(url);
         
@@ -144,9 +148,15 @@ const TechnicalCards = () => {
           }
           row.push(currentValue); // Add the last value
           
+          // Ensure we have at least the minimum required columns
           if (row.length >= 4 && row[1]?.trim()) {
+            // Clean and normalize category value
             const category = row[0]?.trim() || 'другое';
-            uniqueCategories.add(category);
+            
+            // Only add non-empty categories
+            if (category) {
+              uniqueCategories.add(category);
+            }
             
             // Parse ingredients
             const ingredients = row[2]?.trim() 
@@ -275,7 +285,7 @@ const TechnicalCards = () => {
                         <h3 className="font-medium">{recipe.name}</h3>
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2">
-                        {recipe.description}
+                        {recipe.description || recipe.ingredients.join(', ')}
                       </p>
                     </div>
                   </div>
@@ -307,7 +317,7 @@ const TechnicalCards = () => {
                 {getCategoryIcon(selectedRecipe.category)}
                 <h2 className="text-xl font-semibold">{selectedRecipe.name}</h2>
               </div>
-              <p className="text-muted-foreground mb-4">{selectedRecipe.description}</p>
+              <p className="text-muted-foreground mb-4">{selectedRecipe.description || selectedRecipe.ingredients.join(', ')}</p>
               
               <h3 className="font-medium mb-2">Ингредиенты:</h3>
               <div className="space-y-1 mb-4">
