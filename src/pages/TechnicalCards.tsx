@@ -1,19 +1,18 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { 
   Search, 
   Coffee,
   CupSoda,
+  Milk,
   Cherry,
-  Croissant,
-  Loader2
+  Croissant
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/components/ui/use-toast";
 
 interface RecipeIngredient {
   name: string;
@@ -23,33 +22,40 @@ interface RecipeIngredient {
 interface Recipe {
   id: string;
   name: string;
-  category: string;
-  ingredients: string[];
+  category: "coffee" | "tea" | "dessert" | "other";
+  ingredients: RecipeIngredient[];
+  description: string;
   preparation: string[];
   image?: string;
-  description?: string;
 }
 
 const mockRecipes: Recipe[] = [
   {
     id: "r1",
     name: "Капучино",
-    category: "классические",
-    ingredients: ["Эспрессо", "Молоко"],
+    category: "coffee",
+    ingredients: [
+      { name: "Эспрессо", amount: "30 мл" },
+      { name: "Молоко", amount: "150 мл" },
+    ],
+    description: "Классический капучино с нежной молочной пеной.",
     preparation: [
       "Приготовить эспрессо (30 мл)",
       "Взбить молоко до образования микропены",
       "Влить молоко в эспрессо, создавая слоистую структуру",
       "При подаче можно украсить корицей или какао"
     ],
-    description: "Классический капучино с нежной молочной пеной.",
     image: "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
   },
   {
     id: "r2",
     name: "Латте",
-    category: "классические",
-    ingredients: ["Эспрессо", "Молоко", "Сироп (опционально)"],
+    category: "coffee",
+    ingredients: [
+      { name: "Эспрессо", amount: "30 мл" },
+      { name: "Молоко", amount: "200 мл" },
+      { name: "Сироп (опционально)", amount: "15 мл" },
+    ],
     description: "Мягкий кофейный напиток с большим количеством молока.",
     preparation: [
       "Приготовить эспрессо (30 мл)",
@@ -61,8 +67,11 @@ const mockRecipes: Recipe[] = [
   {
     id: "r3",
     name: "Американо",
-    category: "классические",
-    ingredients: ["Эспрессо", "Горячая вода"],
+    category: "coffee",
+    ingredients: [
+      { name: "Эспрессо", amount: "30 мл" },
+      { name: "Горячая вода", amount: "90-150 мл" },
+    ],
     description: "Лёгкий кофе, разбавленный горячей водой.",
     preparation: [
       "Приготовить эспрессо (30 мл)",
@@ -72,8 +81,11 @@ const mockRecipes: Recipe[] = [
   {
     id: "r4",
     name: "Чай Эрл Грей",
-    category: "чай",
-    ingredients: ["Чай Эрл Грей", "Горячая вода"],
+    category: "tea",
+    ingredients: [
+      { name: "Чай Эрл Грей", amount: "1 пакетик/3 г" },
+      { name: "Горячая вода", amount: "200 мл" },
+    ],
     description: "Классический черный чай с бергамотом.",
     preparation: [
       "Нагреть воду до 90-95°C",
@@ -82,14 +94,20 @@ const mockRecipes: Recipe[] = [
   },
   {
     id: "r5",
-    name: "Раф кофе",
-    category: "авторские",
-    ingredients: ["Эспрессо", "Сливки", "Ванильный сахар"],
-    description: "Нежный кофейный напиток со сливками и ванилью.",
+    name: "Черничный маффин",
+    category: "dessert",
+    ingredients: [
+      { name: "Мука", amount: "50 г" },
+      { name: "Сахар", amount: "25 г" },
+      { name: "Масло", amount: "20 г" },
+      { name: "Яйцо", amount: "1/4 шт" },
+      { name: "Черника", amount: "15 г" },
+      { name: "Разрыхлитель", amount: "1/4 ч.л." },
+    ],
+    description: "Нежный маффин с черникой.",
     preparation: [
-      "Приготовить эспрессо (30 мл)",
-      "Взбить сливки с ванильным сахаром",
-      "Смешать с эспрессо"
+      "Размораживать при комнатной температуре 1 час",
+      "Разогреть в микроволновке 20-30 секунд перед подачей"
     ],
   },
 ];
@@ -98,134 +116,24 @@ const TechnicalCards = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState<string[]>(["all"]);
-  const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchGoogleSheetData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fix: Use a direct string without characters that need special encoding
-        const spreadsheetId = "1nWyXFaS1G5LZ--C0nHxSy5lzU-9wa06DWoE7ucHRlj8";
-        const sheetId = "0";
-        
-        // Create a clean URL without any problematic characters
-        const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${sheetId}`;
-        
-        console.log("Fetching from URL:", url);
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch data: ${response.status}`);
-        }
-        
-        const csvText = await response.text();
-        const lines = csvText.split('\n');
-        
-        // Skip header row
-        const fetchedRecipes: Recipe[] = [];
-        const uniqueCategories = new Set<string>();
-        uniqueCategories.add("all"); // Always add "all" category
-        
-        for (let i = 1; i < lines.length; i++) {
-          if (!lines[i].trim()) continue;
-          
-          // Handle commas within quoted strings
-          let row: string[] = [];
-          let inQuotes = false;
-          let currentValue = '';
-          
-          for (let char of lines[i]) {
-            if (char === '"') {
-              inQuotes = !inQuotes;
-            } else if (char === ',' && !inQuotes) {
-              row.push(currentValue);
-              currentValue = '';
-            } else {
-              currentValue += char;
-            }
-          }
-          row.push(currentValue); // Add the last value
-          
-          // Ensure we have at least the minimum required columns
-          if (row.length >= 4 && row[1]?.trim()) {
-            // Clean and normalize category value
-            const category = row[0]?.trim() || 'другое';
-            
-            // Only add non-empty categories
-            if (category) {
-              uniqueCategories.add(category);
-            }
-            
-            // Parse ingredients
-            const ingredients = row[2]?.trim() 
-              ? row[2].split(';').map(item => item.trim()).filter(Boolean)
-              : [];
-            
-            // Parse preparation steps
-            const preparation = row[3]?.trim() 
-              ? row[3].split(';').map(s => s.trim()).filter(Boolean)
-              : [];
-            
-            const recipe: Recipe = {
-              id: `r${i}`,
-              category: category,
-              name: row[1]?.trim() || '',
-              ingredients: ingredients,
-              preparation: preparation,
-              description: ingredients.join(', '), // Use ingredients as description
-              image: row[4]?.trim() || undefined
-            };
-            
-            fetchedRecipes.push(recipe);
-          }
-        }
-        
-        console.log("Fetched recipes:", fetchedRecipes);
-        console.log("Unique categories:", [...uniqueCategories]);
-        
-        setCategories([...uniqueCategories]);
-        setRecipes(fetchedRecipes.length > 0 ? fetchedRecipes : mockRecipes);
-        
-        // Set active tab to "all" by default
-        setActiveTab("all");
-      } catch (error) {
-        console.error("Error fetching data from Google Sheets:", error);
-        toast({
-          title: "Ошибка загрузки",
-          description: "Не удалось загрузить данные рецептов",
-          variant: "destructive"
-        });
-        setRecipes(mockRecipes);
-        setCategories(["all", ...new Set(mockRecipes.map(r => r.category))]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchGoogleSheetData();
-  }, [toast]);
-
-  const getCategoryIcon = (category: string) => {
-    const lowerCategory = category.toLowerCase();
-    if (lowerCategory.includes('кофе') || lowerCategory.includes('классич') || lowerCategory.includes('автор')) {
-      return <Coffee className="h-5 w-5" />;
-    } else if (lowerCategory.includes('чай')) {
-      return <CupSoda className="h-5 w-5" />;
-    } else if (lowerCategory.includes('десс') || lowerCategory.includes('выпеч')) {
-      return <Croissant className="h-5 w-5" />;
-    } else {
-      return <Cherry className="h-5 w-5" />;
-    }
-  };
-
-  const filteredRecipes = recipes.filter(recipe => 
+  const filteredRecipes = mockRecipes.filter(recipe => 
     (activeTab === "all" || recipe.category === activeTab) &&
     recipe.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case "coffee":
+        return <Coffee className="h-5 w-5" />;
+      case "tea":
+        return <CupSoda className="h-5 w-5" />;
+      case "dessert":
+        return <Croissant className="h-5 w-5" />;
+      default:
+        return <Cherry className="h-5 w-5" />;
+    }
+  };
 
   return (
     <AppLayout title="Техкарта" showBackButton>
@@ -245,21 +153,15 @@ const TechnicalCards = () => {
         onValueChange={setActiveTab}
         className="mb-6"
       >
-        <TabsList className="grid" style={{ gridTemplateColumns: `repeat(${Math.min(categories.length, 4)}, 1fr)` }}>
-          {categories.map(category => (
-            <TabsTrigger key={category} value={category}>
-              {category === "all" ? "Все" : category}
-            </TabsTrigger>
-          ))}
+        <TabsList className="grid grid-cols-4 mb-4">
+          <TabsTrigger value="all">Все</TabsTrigger>
+          <TabsTrigger value="coffee">Кофе</TabsTrigger>
+          <TabsTrigger value="tea">Чай</TabsTrigger>
+          <TabsTrigger value="dessert">Десерты</TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="space-y-4">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-              <p className="text-muted-foreground">Загрузка рецептов...</p>
-            </div>
-          ) : filteredRecipes.length === 0 ? (
+          {filteredRecipes.length === 0 ? (
             <div className="text-center py-10">
               <p className="text-muted-foreground">Рецепты не найдены</p>
             </div>
@@ -287,7 +189,7 @@ const TechnicalCards = () => {
                         <h3 className="font-medium">{recipe.name}</h3>
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2">
-                        {recipe.description || recipe.ingredients.join(', ')}
+                        {recipe.description}
                       </p>
                     </div>
                   </div>
@@ -319,13 +221,14 @@ const TechnicalCards = () => {
                 {getCategoryIcon(selectedRecipe.category)}
                 <h2 className="text-xl font-semibold">{selectedRecipe.name}</h2>
               </div>
-              <p className="text-muted-foreground mb-4">{selectedRecipe.description || selectedRecipe.ingredients.join(', ')}</p>
+              <p className="text-muted-foreground mb-4">{selectedRecipe.description}</p>
               
               <h3 className="font-medium mb-2">Ингредиенты:</h3>
               <div className="space-y-1 mb-4">
                 {selectedRecipe.ingredients.map((ingredient, index) => (
                   <div key={index} className="flex justify-between">
-                    <span>{ingredient}</span>
+                    <span>{ingredient.name}</span>
+                    <span className="text-muted-foreground">{ingredient.amount}</span>
                   </div>
                 ))}
               </div>
