@@ -1,11 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AppLayout from "@/components/AppLayout";
 import { 
   Search, 
   Coffee,
   CupSoda,
-  Milk,
   Cherry,
   Croissant
 } from "lucide-react";
@@ -13,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "@/hooks/use-toast";
 
 interface RecipeIngredient {
   name: string;
@@ -22,102 +22,84 @@ interface RecipeIngredient {
 interface Recipe {
   id: string;
   name: string;
-  category: "coffee" | "tea" | "dessert" | "other";
-  ingredients: RecipeIngredient[];
+  category: string;
+  ingredients: string[];
   description: string;
   preparation: string[];
   image?: string;
 }
 
-const mockRecipes: Recipe[] = [
-  {
-    id: "r1",
-    name: "Капучино",
-    category: "coffee",
-    ingredients: [
-      { name: "Эспрессо", amount: "30 мл" },
-      { name: "Молоко", amount: "150 мл" },
-    ],
-    description: "Классический капучино с нежной молочной пеной.",
-    preparation: [
-      "Приготовить эспрессо (30 мл)",
-      "Взбить молоко до образования микропены",
-      "Влить молоко в эспрессо, создавая слоистую структуру",
-      "При подаче можно украсить корицей или какао"
-    ],
-    image: "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
-  },
-  {
-    id: "r2",
-    name: "Латте",
-    category: "coffee",
-    ingredients: [
-      { name: "Эспрессо", amount: "30 мл" },
-      { name: "Молоко", amount: "200 мл" },
-      { name: "Сироп (опционально)", amount: "15 мл" },
-    ],
-    description: "Мягкий кофейный напиток с большим количеством молока.",
-    preparation: [
-      "Приготовить эспрессо (30 мл)",
-      "Взбить молоко до образования микропены",
-      "Влить молоко в эспрессо, создавая слоистую структуру",
-      "При желании добавить сироп"
-    ],
-  },
-  {
-    id: "r3",
-    name: "Американо",
-    category: "coffee",
-    ingredients: [
-      { name: "Эспрессо", amount: "30 мл" },
-      { name: "Горячая вода", amount: "90-150 мл" },
-    ],
-    description: "Лёгкий кофе, разбавленный горячей водой.",
-    preparation: [
-      "Приготовить эспрессо (30 мл)",
-      "Добавить горячую воду (90-150 мл в зависимости от желаемой крепости)"
-    ],
-  },
-  {
-    id: "r4",
-    name: "Чай Эрл Грей",
-    category: "tea",
-    ingredients: [
-      { name: "Чай Эрл Грей", amount: "1 пакетик/3 г" },
-      { name: "Горячая вода", amount: "200 мл" },
-    ],
-    description: "Классический черный чай с бергамотом.",
-    preparation: [
-      "Нагреть воду до 90-95°C",
-      "Заварить чай 3-5 минут"
-    ],
-  },
-  {
-    id: "r5",
-    name: "Черничный маффин",
-    category: "dessert",
-    ingredients: [
-      { name: "Мука", amount: "50 г" },
-      { name: "Сахар", amount: "25 г" },
-      { name: "Масло", amount: "20 г" },
-      { name: "Яйцо", amount: "1/4 шт" },
-      { name: "Черника", amount: "15 г" },
-      { name: "Разрыхлитель", amount: "1/4 ч.л." },
-    ],
-    description: "Нежный маффин с черникой.",
-    preparation: [
-      "Размораживать при комнатной температуре 1 час",
-      "Разогреть в микроволновке 20-30 секунд перед подачей"
-    ],
-  },
-];
-
 const TechnicalCards = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [categories, setCategories] = useState<string[]>(["all"]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredRecipes = mockRecipes.filter(recipe => 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Google Sheets ID from the URL
+        const spreadsheetId = "1-8LbmnmJggaeGv9AHL1vXZT_hvBVhV_kdFO_v4p0D0E";
+        // Sheet ID from the URL
+        const sheetId = "798915225";
+        // Use Google Sheets API to fetch data in CSV format
+        const response = await fetch(
+          `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${sheetId}`
+        );
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch data from Google Sheets");
+        }
+        
+        const data = await response.text();
+        const rows = data.split("\n").map(row => row.split(",").map(cell => cell.trim()));
+        
+        // Skip header row (if present)
+        const dataRows = rows.slice(1);
+        
+        // Map the data to our Recipe interface
+        const fetchedRecipes: Recipe[] = dataRows.map((row, index) => {
+          // Ensure we have enough columns
+          if (row.length >= 4) {
+            return {
+              id: `r${index + 1}`,
+              category: row[0] || "other", // First column for category
+              name: row[1] || "Неизвестное название", // Second column for name
+              ingredients: [row[2] || ""], // Third column for ingredients
+              preparation: [row[3] || ""], // Fourth column for preparation
+              description: row[2] || "" // Using ingredients as description too
+            };
+          }
+          return null;
+        }).filter(Boolean) as Recipe[];
+        
+        // Extract unique categories
+        const uniqueCategories = ["all", ...new Set(fetchedRecipes.map(recipe => recipe.category))];
+        console.info("Unique categories:", uniqueCategories);
+        console.info("Fetched recipes:", fetchedRecipes);
+        
+        setRecipes(fetchedRecipes);
+        setCategories(uniqueCategories);
+        setActiveTab("all"); // Reset to "all" tab
+      } catch (error) {
+        console.error("Error fetching recipes:", error);
+        toast({
+          title: "Ошибка загрузки данных",
+          description: "Не удалось загрузить рецепты из Google Sheets",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const filteredRecipes = recipes.filter(recipe => 
     (activeTab === "all" || recipe.category === activeTab) &&
     recipe.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -125,6 +107,7 @@ const TechnicalCards = () => {
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case "coffee":
+      case "классические":
         return <Coffee className="h-5 w-5" />;
       case "tea":
         return <CupSoda className="h-5 w-5" />;
@@ -147,58 +130,56 @@ const TechnicalCards = () => {
         />
       </div>
 
-      <Tabs 
-        defaultValue="all" 
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="mb-6"
-      >
-        <TabsList className="grid grid-cols-4 mb-4">
-          <TabsTrigger value="all">Все</TabsTrigger>
-          <TabsTrigger value="coffee">Кофе</TabsTrigger>
-          <TabsTrigger value="tea">Чай</TabsTrigger>
-          <TabsTrigger value="dessert">Десерты</TabsTrigger>
-        </TabsList>
+      {loading ? (
+        <div className="text-center py-10">
+          <p className="text-muted-foreground">Загрузка рецептов...</p>
+        </div>
+      ) : (
+        <Tabs 
+          defaultValue="all" 
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="mb-6"
+        >
+          <TabsList className="grid grid-cols-4 mb-4 overflow-x-auto">
+            {categories.slice(0, 4).map((category) => (
+              <TabsTrigger key={category} value={category}>
+                {category === "all" ? "Все" : category}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        <TabsContent value={activeTab} className="space-y-4">
-          {filteredRecipes.length === 0 ? (
-            <div className="text-center py-10">
-              <p className="text-muted-foreground">Рецепты не найдены</p>
-            </div>
-          ) : (
-            filteredRecipes.map(recipe => (
-              <Card 
-                key={recipe.id}
-                className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => setSelectedRecipe(recipe)}
-              >
-                <CardContent className="p-0">
-                  <div className="flex">
-                    {recipe.image && (
-                      <div className="w-24 h-24 bg-muted flex-shrink-0">
-                        <img
-                          src={recipe.image}
-                          alt={recipe.name}
-                          className="w-full h-full object-cover"
-                        />
+          <TabsContent value={activeTab} className="space-y-4">
+            {filteredRecipes.length === 0 ? (
+              <div className="text-center py-10">
+                <p className="text-muted-foreground">Рецепты не найдены</p>
+              </div>
+            ) : (
+              filteredRecipes.map(recipe => (
+                <Card 
+                  key={recipe.id}
+                  className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => setSelectedRecipe(recipe)}
+                >
+                  <CardContent className="p-0">
+                    <div className="flex">
+                      <div className="p-4 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          {getCategoryIcon(recipe.category)}
+                          <h3 className="font-medium">{recipe.name}</h3>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {recipe.description}
+                        </p>
                       </div>
-                    )}
-                    <div className="p-4 flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        {getCategoryIcon(recipe.category)}
-                        <h3 className="font-medium">{recipe.name}</h3>
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {recipe.description}
-                      </p>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+        </Tabs>
+      )}
 
       {selectedRecipe && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-fade-in">
@@ -227,8 +208,7 @@ const TechnicalCards = () => {
               <div className="space-y-1 mb-4">
                 {selectedRecipe.ingredients.map((ingredient, index) => (
                   <div key={index} className="flex justify-between">
-                    <span>{ingredient.name}</span>
-                    <span className="text-muted-foreground">{ingredient.amount}</span>
+                    <span>{ingredient}</span>
                   </div>
                 ))}
               </div>
