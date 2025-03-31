@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import * as React from 'react';
+const { useState, useEffect } = React;
 import AppLayout from "@/components/AppLayout";
 import { 
   Search, 
@@ -28,7 +29,7 @@ interface Recipe {
   image?: string;
 }
 
-const TechnicalCards = () => {
+const TechnicalCards: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
