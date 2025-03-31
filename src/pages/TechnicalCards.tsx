@@ -24,15 +24,20 @@ const TechnicalCards = () => {
         setLoading(true);
         const fetchedRecipes = await fetchGoogleSheetRecipes();
         
-        // Extract unique categories
+        // Extract unique valid categories
         const uniqueCategories = new Set<string>();
         uniqueCategories.add("all"); // Always add "all" category
         
         fetchedRecipes.forEach(recipe => {
-          if (recipe.category) {
+          if (recipe.category && recipe.category !== "другое") {
             uniqueCategories.add(recipe.category);
           }
         });
+        
+        // Add "другое" at the end if needed
+        if (fetchedRecipes.some(recipe => recipe.category === "другое")) {
+          uniqueCategories.add("другое");
+        }
         
         console.log("Fetched recipes:", fetchedRecipes);
         console.log("Unique categories:", [...uniqueCategories]);

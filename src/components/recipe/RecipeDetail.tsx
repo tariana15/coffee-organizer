@@ -51,22 +51,30 @@ const RecipeDetail = ({ recipe, onClose }: RecipeDetailProps) => {
           
           <h3 className="font-medium mb-2">Ингредиенты:</h3>
           <div className="space-y-1 mb-4">
-            {recipe.ingredients.map((ingredient, index) => (
-              <div key={index} className="flex items-center">
-                <span className="text-sm text-muted-foreground">• {ingredient}</span>
-              </div>
-            ))}
+            {recipe.ingredients && recipe.ingredients.length > 0 ? (
+              recipe.ingredients.map((ingredient, index) => (
+                <div key={index} className="flex items-center">
+                  <span className="text-sm text-muted-foreground">• {ingredient}</span>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-muted-foreground">Ингредиенты не указаны</div>
+            )}
           </div>
           
           <Separator className="my-4" />
           
           <h3 className="font-medium mb-2">Приготовление:</h3>
           <ol className="space-y-2 list-decimal list-inside mb-6">
-            {recipe.preparation.map((step, index) => (
-              <li key={index} className="text-muted-foreground">
-                <span className="text-foreground">{index + 1}.</span> {step}
-              </li>
-            ))}
+            {recipe.preparation && recipe.preparation.length > 0 ? (
+              recipe.preparation.map((step, index) => (
+                <li key={index} className="text-muted-foreground">
+                  <span className="text-foreground">{index + 1}.</span> {step}
+                </li>
+              ))
+            ) : (
+              <li className="text-sm text-muted-foreground">Шаги приготовления не указаны</li>
+            )}
           </ol>
           
           <Button 

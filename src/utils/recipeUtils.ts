@@ -76,6 +76,7 @@ export const fetchGoogleSheetRecipes = async (): Promise<Recipe[]> => {
   
   // Skip header row
   const fetchedRecipes: Recipe[] = [];
+  const validCategories = new Set(["классические", "авторские", "чай", "сезонные", "горячие", "холодные", "десерты", "другое"]);
   
   for (let i = 1; i < lines.length; i++) {
     if (!lines[i].trim()) continue;
@@ -101,10 +102,15 @@ export const fetchGoogleSheetRecipes = async (): Promise<Recipe[]> => {
       // Get category - ensure it's clean and valid
       let category = row[0]?.trim() || 'другое';
       
-      // Clean up category - if it contains commas or multiple lines, fix it
+      // Clean up category and validate it
       if (category.includes(',') || category.includes('\n')) {
         // Take only the first part before comma or newline
         category = category.split(/[,\n]/)[0].trim();
+      }
+      
+      // Check if the category looks like an ingredient (contains "мл" or similar patterns)
+      if (category.match(/\d+\s*мл/) || !validCategories.has(category.toLowerCase())) {
+        category = "другое"; // Default to "другое" for invalid categories
       }
       
       // Parse ingredients - split by newlines or semicolons
