@@ -67,16 +67,16 @@ const TechnicalCards = () => {
               id: `r${index + 1}`,
               category: row[0] || "other", // First column for category
               name: row[1] || "Неизвестное название", // Second column for name
-              ingredients: [row[2] || ""], // Third column for ingredients
-              preparation: [row[3] || ""], // Fourth column for preparation
-              description: row[2] || "" // Using ingredients as description too
+              ingredients: row[2] ? row[2].split('\n').filter(Boolean) : [], // Third column for ingredients, split by newlines
+              preparation: row[3] ? row[3].split('\n').filter(Boolean) : [], // Fourth column for preparation, split by newlines
+              description: row[2] || "" // Using ingredients as description
             };
           }
           return null;
         }).filter(Boolean) as Recipe[];
         
-        // Extract unique categories
-        const uniqueCategories = ["all", ...new Set(fetchedRecipes.map(recipe => recipe.category))];
+        // Extract unique categories and sort them
+        const uniqueCategories = ["all", ...new Set(fetchedRecipes.map(recipe => recipe.category))].sort();
         console.info("Unique categories:", uniqueCategories);
         console.info("Fetched recipes:", fetchedRecipes);
         
