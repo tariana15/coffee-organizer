@@ -140,20 +140,27 @@ const TechnicalCards = () => {
           row.push(currentValue); // Add the last value
           
           if (row.length >= 4 && row[1]?.trim()) {
-            const category = row[0]?.trim() || 'другое';
+            // Get category - ensure it's clean and valid
+            let category = row[0]?.trim() || 'другое';
+            
+            // Clean up category - if it contains commas or multiple lines, fix it
+            if (category.includes(',') || category.includes('\n')) {
+              // Take only the first part before comma or newline
+              category = category.split(/[,\n]/)[0].trim();
+            }
             
             if (category) {
               uniqueCategories.add(category);
             }
             
-            // Parse ingredients
+            // Parse ingredients - split by newlines or semicolons
             const ingredients = row[2]?.trim() 
-              ? row[2].split(';').map(item => item.trim()).filter(Boolean)
+              ? row[2].replace(/\n/g, ';').split(';').map(item => item.trim()).filter(Boolean)
               : [];
             
-            // Parse preparation steps
+            // Parse preparation steps - split by newlines or semicolons
             const preparation = row[3]?.trim() 
-              ? row[3].split(';').map(s => s.trim()).filter(Boolean)
+              ? row[3].replace(/\n/g, ';').split(';').map(s => s.trim()).filter(Boolean)
               : [];
             
             // Safely handle image URL - make sure not to add invalid URLs
@@ -286,7 +293,8 @@ const TechnicalCards = () => {
                         <h3 className="font-medium">{recipe.name}</h3>
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2">
-                        {recipe.ingredients.join(', ')}
+                        {recipe.ingredients.slice(0, 2).join(', ')}
+                        {recipe.ingredients.length > 2 && '...'}
                       </p>
                     </div>
                   </div>
@@ -318,13 +326,13 @@ const TechnicalCards = () => {
                 {getCategoryIcon(selectedRecipe.category)}
                 <h2 className="text-xl font-semibold">{selectedRecipe.name}</h2>
               </div>
-              <p className="text-muted-foreground mb-4">{selectedRecipe.ingredients.join(', ')}</p>
+              <p className="text-sm text-muted-foreground mb-4">{selectedRecipe.category}</p>
               
               <h3 className="font-medium mb-2">Ингредиенты:</h3>
               <div className="space-y-1 mb-4">
                 {selectedRecipe.ingredients.map((ingredient, index) => (
-                  <div key={index} className="flex justify-between">
-                    <span>{ingredient}</span>
+                  <div key={index} className="flex items-center">
+                    <span className="text-sm text-muted-foreground">• {ingredient}</span>
                   </div>
                 ))}
               </div>
