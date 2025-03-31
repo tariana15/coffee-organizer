@@ -107,12 +107,13 @@ const TechnicalCards = () => {
     const fetchGoogleSheetData = async () => {
       try {
         setLoading(true);
-        // Use a safer method to fetch data from Google Sheets
-        const spreadsheetId = "1nWyXFaS1G5LZ--C0nHxSy5lzU-9wa06DWoE7ucHRlj8";
-        const sheetId = "0";
         
-        // Use encodeURIComponent for the URL parts that might contain special characters
-        const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(spreadsheetId)}/export?format=csv&gid=${encodeURIComponent(sheetId)}`;
+        // Make sure spreadsheetId and sheetId are properly encoded for the URL
+        const spreadsheetId = encodeURIComponent("1nWyXFaS1G5LZ--C0nHxSy5lzU-9wa06DWoE7ucHRlj8");
+        const sheetId = encodeURIComponent("0");
+        
+        // Create the URL with properly encoded components
+        const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${sheetId}`;
         
         const response = await fetch(url);
         
