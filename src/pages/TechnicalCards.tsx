@@ -108,13 +108,14 @@ const TechnicalCards = () => {
       try {
         setLoading(true);
         
-        // Make sure spreadsheetId and sheetId are properly encoded for the URL
-        const spreadsheetId = encodeURIComponent("1nWyXFaS1G5LZ--C0nHxSy5lzU-9wa06DWoE7ucHRlj8");
-        const sheetId = encodeURIComponent("0");
+        // Fix: Use a direct string without characters that need special encoding
+        const spreadsheetId = "1nWyXFaS1G5LZ--C0nHxSy5lzU-9wa06DWoE7ucHRlj8";
+        const sheetId = "0";
         
-        // Create the URL with properly encoded components
+        // Create a clean URL without any problematic characters
         const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${sheetId}`;
         
+        console.log("Fetching from URL:", url);
         const response = await fetch(url);
         
         if (!response.ok) {
