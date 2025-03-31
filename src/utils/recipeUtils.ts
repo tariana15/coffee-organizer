@@ -99,18 +99,37 @@ export const fetchGoogleSheetRecipes = async (): Promise<Recipe[]> => {
     row.push(currentValue); // Add the last value
     
     if (row.length >= 4 && row[1]?.trim()) {
-      // Get category - ensure it's clean and valid
+      // Get category directly from the first column
       let category = row[0]?.trim() || 'другое';
       
-      // Clean up category and validate it
+      // Clean up category and normalize
       if (category.includes(',') || category.includes('\n')) {
         // Take only the first part before comma or newline
-        category = category.split(/[,\n]/)[0].trim();
+        category = category.split(/[,\n]/)[0].trim().toLowerCase();
+      } else {
+        category = category.toLowerCase();
       }
       
-      // Check if the category looks like an ingredient (contains "мл" or similar patterns)
-      if (category.match(/\d+\s*мл/) || !validCategories.has(category.toLowerCase())) {
-        category = "другое"; // Default to "другое" for invalid categories
+      // Map categories to valid ones
+      if (!validCategories.has(category)) {
+        // Check for partial matches
+        if (category.includes('классич') || category.includes('класс')) {
+          category = 'классические';
+        } else if (category.includes('автор')) {
+          category = 'авторские';
+        } else if (category.includes('чай')) {
+          category = 'чай';
+        } else if (category.includes('сезон')) {
+          category = 'сезонные';
+        } else if (category.includes('горяч')) {
+          category = 'горячие';
+        } else if (category.includes('холод')) {
+          category = 'холодные';
+        } else if (category.includes('десерт')) {
+          category = 'десерты';
+        } else {
+          category = 'другое';
+        }
       }
       
       // Parse ingredients - split by newlines or semicolons
